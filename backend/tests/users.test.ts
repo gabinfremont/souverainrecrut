@@ -99,3 +99,63 @@ describe('/v1/users (ADMIN)', () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe('Le mot de passe haché n’est jamais demandé à la base (/v1/users)', () => {
+  const publicUser = {
+    id: 'u1', firstName: 'Awa', lastName: 'Diallo', email: 'awa@mail.fr', role: 'ADMIN',
+    createdAt: new Date(), updatedAt: new Date(),
+  };
+
+  const expectPublicSelect = (call: any) => {
+    expect(call.select).toBeDefined();
+    expect(call.select.password).toBeUndefined();
+    expect(call.select.id).toBe(true);
+    expect(call.select.email).toBe(true);
+  };
+
+  it('GET /users utilise un select sans password', async () => {
+    prismaMock.user.findMany.mockResolvedValue([publicUser] as any);
+    prismaMock.user.count.mockResolvedValue(1);
+    const res = await request(app).get('/v1/users').set('Authorization', bearer('ADMIN'));
+    expect(res.status).toBe(200);
+    expectPublicSelect(prismaMock.user.findMany.mock.calls[0][0]);
+  });
+
+  it('GET /users/:id utilise un select sans password', async () => {
+    prismaMock.user.findUnique.mockResolvedValue(publicUser as any);
+    const res = await request(app).get('/v1/users/u1').set('Authorization', bearer('ADMIN'));
+    expect(res.status).toBe(200);
+    expectPublicSelect(prismaMock.user.findUnique.mock.calls[0][0]);
+  });
+
+  it('POST /users renvoie un utilisateur créé sans password', async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    prismaMock.user.create.mockResolvedValue(publicUser as any);
+    const res = await request(app)
+      .post('/v1/users')
+      .set('Authorization', bearer('ADMIN'))
+      .send({ firstName: 'Awa', lastName: 'Diallo', email: 'new@mail.fr', password: 'secret123' });
+    expect(res.status).toBeLessThan(300);
+    expectPublicSelect(prismaMock.user.create.mock.calls[0][0]);
+    expect(res.body.data.password).toBeUndefined();
+  });
+
+  it('PUT /users/:id renvoie un utilisateur mis à jour sans password', async () => {
+    prismaMock.user.findUnique.mockResolvedValue(publicUser as any);
+    prismaMock.user.update.mockResolvedValue(publicUser as any);
+    const res = await request(app)
+      .put('/v1/users/u1')
+      .set('Authorization', bearer('ADMIN'))
+      .send({ firstName: 'Awa' });
+    expect(res.status).toBe(200);
+    expectPublicSelect(prismaMock.user.update.mock.calls[0][0]);
+  });
+
+  it('DELETE /users/:id renvoie un utilisateur supprimé sans password', async () => {
+    prismaMock.user.findUnique.mockResolvedValue(publicUser as any);
+    prismaMock.user.delete.mockResolvedValue(publicUser as any);
+    const res = await request(app).delete('/v1/users/u1').set('Authorization', bearer('ADMIN'));
+    expect(res.status).toBeLessThan(300);
+    expectPublicSelect(prismaMock.user.delete.mock.calls[0][0]);
+  });
+});

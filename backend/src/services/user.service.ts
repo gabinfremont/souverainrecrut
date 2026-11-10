@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import { Prisma, User } from "@prisma/client";
 
-import { UserRepository } from "../repositories/user.repository";
+import { UserRepository, PublicUser } from "../repositories/user.repository";
 import { AppError } from "../errors/app.error";
 
 export class UserService {
@@ -21,7 +21,7 @@ export class UserService {
   /**
    * Retourne un utilisateur par son identifiant.
    */
-  async getById(id: string): Promise<User> {
+  async getById(id: string): Promise<PublicUser> {
     const user = await this.repository.findById(id);
 
     if (!user) {
@@ -47,7 +47,7 @@ export class UserService {
   /**
    * Crée un utilisateur.
    */
-  async create(data: Prisma.UserCreateInput): Promise<User> {
+  async create(data: Prisma.UserCreateInput): Promise<PublicUser> {
     const existingUser = await this.repository.findByEmail(
       data.email
     );
@@ -73,10 +73,10 @@ export class UserService {
   /**
    * Met à jour un utilisateur.
    */
-  async update(
+    async update(
     id: string,
     data: Prisma.UserUpdateInput
-  ): Promise<User> {
+  ): Promise<PublicUser> {
     await this.getById(id);
 
     return this.repository.update(id, data);
@@ -85,7 +85,7 @@ export class UserService {
   /**
    * Supprime un utilisateur.
    */
-  async delete(id: string): Promise<User> {
+  async delete(id: string): Promise<PublicUser> {
     await this.getById(id);
 
     return this.repository.delete(id);
